@@ -6,9 +6,13 @@ import json
 from tqdm import tqdm
 
 from typing import Tuple
+import openai
+import tiktoken
+from time import sleep
 
 
 async def get_tokens(client, to_tokenize: str, model=None) -> Tuple[list[str], int]:
+    
     """
     Model defaults to haiku
     test_tokenization.py showed they're the same, unless have unicode mixed with ascii
@@ -41,6 +45,7 @@ async def get_tokens(client, to_tokenize: str, model=None) -> Tuple[list[str], i
 
 
 def tokenize_text(client, to_tokenize: str, model=None) -> Tuple[list[str], int]:
+    print('text to tokenize:', to_tokenize)
     tokens, total_tokens_usage = asyncio.run(get_tokens(client, to_tokenize, model=model))
     return tokens, total_tokens_usage
 
@@ -62,31 +67,56 @@ if __name__ == "__main__":
         default=False,
     )
 
+    num_tokens = 0
+    token_index = 99_000
+    encoding = tiktoken.get_encoding("cl100k_base")
+
+    repetition_failures = []
+    spelling_failures = []
+
+    # import IPython
+    # IPython.embed()
+
+    num_numeric_tokens = 0
+
     args = parser.parse_args()
 
-    assert args.text or args.file, "You must provide either a text or an input file."
+    while token_index < 100_000:
+        token = encoding.decode([token_index])
+#
+        # str_to_tokenize = 'Please spell the following: "città"'
 
-    KEEP_VOCAB = not args.disable_vocab
+        # print(token)
+
+    # assert args.text or args.file, "You must provide either a text or an input file."
+
+    # KEEP_VOCAB = not args.disable_vocab
 
     # Initialize the Anthropic client. Will use a key exported as ANTHROPIC_API_KEY in your environment.
-    client = AsyncAnthropic()
+        client = AsyncAnthropic()
 
-    if args.text:  # Quick execution and print on screen
-        tokens, total_tokens_usage = tokenize_text(client, args.text, args.model)
-        print("Tokens:", tokens)
-        print("Number of text tokens:", len(tokens))
-        print("Total tokens usage (as of API):", total_tokens_usage)
+        if token:  # Quick execution and print on screen
+            # print(token)
+            tokens, total_tokens_usage = tokenize_text(client, token, args.model)
+            print("Tokens:", tokens)
+            print("Number of text tokens:", len(tokens))
+            print("Total tokens usage (as of API):", total_tokens_usage)
 
-        with open("anthropic_vocab.jsonl", "a") as f:
-            for t in tokens:
-                f.write(json.dumps({"token": t}) + "\n")
+            # print(tokens)
 
-        if "".join(tokens) != args.text:
-            raise Exception(
-                """The tokenization resulted in a different string than the original. See below:\n\n========= Original =========\n{}\n\n\n========= Tokenized =========\n{}""".format(
-                    args.text, "".join(tokens)
-                )
-            )
+            with open("anthropic_vocab.jsonl", "a") as f:
+                for t in tokens:
+                    f.write(json.dumps({"token": t}) + "\n")
+
+            # if "".join(tokens) != token:
+            #     raise Exception(
+            #         """The tokenization resulted in a different string than the original. See below:\n\n========= Original =========\n{}\n\n\n========= Tokenized =========\n{}""".format(
+            #             args.text, "".join(tokens)
+            #         )
+            #     )
+            
+        token_index += 1
+        sleep(1)
 
     if args.file:  # Read from file and write to file
         to_tokenize = []
