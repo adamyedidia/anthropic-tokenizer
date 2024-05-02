@@ -81,6 +81,16 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    client = AsyncAnthropic()
+
+
+    # token, total_tokens_usage = tokenize_text(client, 'strlen', args.model)
+
+    # print(token)
+    # print(total_tokens_usage)
+
+    # raise Exception()
+
     while token_index < 100_000:
         token = encoding.decode([token_index])
 #
@@ -93,14 +103,12 @@ if __name__ == "__main__":
     # KEEP_VOCAB = not args.disable_vocab
 
     # Initialize the Anthropic client. Will use a key exported as ANTHROPIC_API_KEY in your environment.
-        client = AsyncAnthropic()
-
         if token:  # Quick execution and print on screen
             # print(token)
             tokens, total_tokens_usage = tokenize_text(client, token, args.model)
-            print("Tokens:", tokens)
-            print("Number of text tokens:", len(tokens))
-            print("Total tokens usage (as of API):", total_tokens_usage)
+            # print("Tokens:", tokens)
+            # print("Number of text tokens:", len(tokens))
+            # print("Total tokens usage (as of API):", total_tokens_usage)
 
             # print(tokens)
 
@@ -108,15 +116,15 @@ if __name__ == "__main__":
                 for t in tokens:
                     f.write(json.dumps({"token": t}) + "\n")
 
-            # if "".join(tokens) != token:
-            #     raise Exception(
-            #         """The tokenization resulted in a different string than the original. See below:\n\n========= Original =========\n{}\n\n\n========= Tokenized =========\n{}""".format(
-            #             args.text, "".join(tokens)
-            #         )
-            #     )
+            if "".join(tokens).strip() != token.strip():
+                print(
+                    """The tokenization resulted in a different string than the original. See below:\n\n========= Original =========\n{}\n\n\n========= Tokenized =========\n{}""".format(
+                        token, "".join(tokens)
+                    )
+                )
             
         token_index += 1
-        sleep(1)
+        # sleep(1)
 
     if args.file:  # Read from file and write to file
         to_tokenize = []
